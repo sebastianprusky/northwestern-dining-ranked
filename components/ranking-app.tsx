@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { scoreBucket } from "@/lib/scoring";
+import { scoreBucket, type NeutralPair } from "@/lib/scoring";
 import { SITE_HOSTNAME, SITE_URL } from "@/lib/site";
 import { vendorById, vendors, type Bucket, type Vendor } from "@/lib/vendors";
 
@@ -19,6 +19,13 @@ type SortMachine = {
   leftIndex: number;
   rightIndex: number;
   output: string[];
+};
+
+type ComparisonSnapshot = {
+  machine: SortMachine;
+  sorted: BucketMap;
+  comparisons: number;
+  neutralPairs: NeutralPair[];
 };
 
 type LeaderboardEntry = {
@@ -192,6 +199,8 @@ export function RankingApp() {
   const [sorted, setSorted] = useState<BucketMap>(emptyBuckets);
   const [machine, setMachine] = useState<SortMachine | null>(null);
   const [comparisons, setComparisons] = useState(0);
+  const [comparisonHistory, setComparisonHistory] = useState<ComparisonSnapshot[]>([]);
+  const [neutralPairs, setNeutralPairs] = useState<NeutralPair[]>([]);
   const [favoriteDish, setFavoriteDish] = useState<string | null>(null);
   const [favoriteDraft, setFavoriteDraft] = useState("");
   const [leaderboard, setLeaderboard] = useState<LeaderboardResponse | null>(null);
@@ -201,15 +210,16 @@ export function RankingApp() {
 
   const scoredRanking = useMemo(() => {
     return bucketOrder.flatMap((bucket) =>
-      scoreBucket(bucket, sorted[bucket]).map((result) => ({
+      scoreBucket(bucket, sorted[bucket], neutralPairs).map((result) => ({
         ...result,
         bucket,
         vendor: vendorById[result.vendorId],
       })),
     );
-  }, [sorted]);
+  }, [neutralPairs, sorted]);
 
   const topVendor = scoredRanking[0]?.vendor;
+  const topScoreTieCount = scoredRanking.filter(({ score }) => score === scoredRanking[0]?.score).length;
 
   const reset = useCallback(() => {
     setPhase("landing");
@@ -218,6 +228,8 @@ export function RankingApp() {
     setSorted(emptyBuckets());
     setMachine(null);
     setComparisons(0);
+    setComparisonHistory([]);
+    setNeutralPairs([]);
     setFavoriteDish(null);
     setFavoriteDraft("");
     setShareStatus(null);
@@ -225,6 +237,8 @@ export function RankingApp() {
 
   const beginComparisons = useCallback((finalBuckets: BucketMap) => {
     const sortable = bucketOrder.filter((bucket) => finalBuckets[bucket].length >= 2);
+    setComparisonHistory([]);
+    setNeutralPairs([]);
     setSorted({
       liked: [...finalBuckets.liked],
       fine: [...finalBuckets.fine],
@@ -264,7 +278,10 @@ export function RankingApp() {
   }
 
   function undoBucketChoice() {
-    if (bucketIndex === 0) return;
+    if (bucketIndex === 0) {
+      setPhase("landing");
+      return;
+    }
     const previousVendor = vendors[bucketIndex - 1];
     setBuckets((current) => ({
       liked: current.liked.filter((id) => id !== previousVendor.id),
@@ -274,15 +291,27 @@ export function RankingApp() {
     setBucketIndex((current) => current - 1);
   }
 
-  function chooseComparison(preferredId: string) {
+  function chooseComparison(preferredId: string | null) {
     if (!machine?.left || !machine.right) return;
+
+    setComparisonHistory((current) => [...current, { machine, sorted, comparisons, neutralPairs }]);
 
     let leftIndex = machine.leftIndex;
     let rightIndex = machine.rightIndex;
-    const output = [...machine.output, preferredId];
+    const leftId = machine.left[leftIndex];
+    const rightId = machine.right[rightIndex];
+    let output: string[];
 
-    if (machine.left[leftIndex] === preferredId) leftIndex += 1;
-    else rightIndex += 1;
+    if (preferredId === null) {
+      output = [...machine.output, leftId, rightId];
+      leftIndex += 1;
+      rightIndex += 1;
+      setNeutralPairs((current) => [...current, [leftId, rightId]]);
+    } else {
+      output = [...machine.output, preferredId];
+      if (leftId === preferredId) leftIndex += 1;
+      else rightIndex += 1;
+    }
 
     setComparisons((current) => current + 1);
 
@@ -323,6 +352,41 @@ export function RankingApp() {
       setMachine(null);
       setPhase("dish");
     }
+  }
+
+  function returnToBuckets() {
+    const lastVendor = vendors[vendors.length - 1];
+    setBuckets((current) => ({
+      liked: current.liked.filter((id) => id !== lastVendor.id),
+      fine: current.fine.filter((id) => id !== lastVendor.id),
+      disliked: current.disliked.filter((id) => id !== lastVendor.id),
+    }));
+    setBucketIndex(vendors.length - 1);
+    setSorted(emptyBuckets());
+    setMachine(null);
+    setComparisons(0);
+    setComparisonHistory([]);
+    setNeutralPairs([]);
+    setFavoriteDish(null);
+    setFavoriteDraft("");
+    setPhase("bucket");
+  }
+
+  function undoComparison() {
+    const previous = comparisonHistory[comparisonHistory.length - 1];
+    if (!previous) {
+      returnToBuckets();
+      return;
+    }
+
+    setMachine(previous.machine);
+    setSorted(previous.sorted);
+    setComparisons(previous.comparisons);
+    setNeutralPairs(previous.neutralPairs);
+    setComparisonHistory((current) => current.slice(0, -1));
+    setFavoriteDish(null);
+    setFavoriteDraft("");
+    setPhase("compare");
   }
 
   const loadLeaderboard = useCallback(async () => {
@@ -394,13 +458,13 @@ export function RankingApp() {
     context.fillStyle = "#F7F4EF";
     context.fillRect(0, 0, canvas.width, canvas.height);
     context.fillStyle = "#211B24";
-    context.font = "650 66px 'Fraunces', Georgia, serif";
+    context.font = "650 70px 'Fraunces', Georgia, serif";
     context.fillText("My Northwestern dining ranked", 72, 128, 936);
 
     const compactRanking = scoredRanking.length > 9;
     const rankingStart = 178;
-    const rankingStep = compactRanking ? 78 : 88;
-    const rankingHeight = compactRanking ? 68 : 76;
+    const rankingStep = compactRanking ? 84 : 92;
+    const rankingHeight = compactRanking ? 74 : 80;
     scoredRanking.forEach(({ vendor, score }, index) => {
       const y = rankingStart + index * rankingStep;
 
@@ -413,18 +477,19 @@ export function RankingApp() {
 
       context.fillStyle = "#4E2A84";
       context.font = `650 ${compactRanking ? 27 : 30}px 'Fraunces', Georgia, serif`;
-      context.fillText(String(index + 1), 78, y + (compactRanking ? 45 : 50));
+      const displayedRank = scoredRanking.findIndex((item) => item.score === score) + 1;
+      context.fillText(String(displayedRank), 78, y + (compactRanking ? 49 : 52));
 
-      const imageSize = compactRanking ? 54 : 62;
+      const imageSize = compactRanking ? 64 : 68;
       const vendorImage = vendorImages.get(vendor.id);
-      if (vendorImage) drawRoundedCanvasImage(context, vendorImage, 130, y + 7, imageSize, 13);
+      if (vendorImage) drawRoundedCanvasImage(context, vendorImage, 130, y + 5, imageSize, 14);
 
       context.fillStyle = "#211B24";
       context.font = `650 ${compactRanking ? 27 : 30}px 'DM Sans', sans-serif`;
-      context.fillText(vendor.name, compactRanking ? 208 : 216, y + (compactRanking ? 45 : 50), 610);
+      context.fillText(vendor.name, compactRanking ? 218 : 224, y + (compactRanking ? 49 : 52), 600);
 
       const scoreX = 898;
-      const scoreY = y + (compactRanking ? 15 : 18);
+      const scoreY = y + (compactRanking ? 18 : 19);
       const scoreWidth = 88;
       const scoreHeight = compactRanking ? 38 : 42;
       context.strokeStyle = "#4E2A84";
@@ -546,7 +611,7 @@ export function RankingApp() {
             {bucketOrder.map((bucket) => <button key={bucket} onClick={() => chooseBucket(bucket)}><span>{bucketMeta[bucket].mark}</span>{bucketMeta[bucket].label}</button>)}
           </div>
           <button className="text-button" onClick={() => chooseBucket("untried")}>Haven&apos;t tried it</button>
-          {bucketIndex > 0 && <button className="back-button" onClick={undoBucketChoice}>← Back</button>}
+          <button className="back-button" onClick={undoBucketChoice}>← Back</button>
         </section>
       </main>
     );
@@ -562,14 +627,16 @@ export function RankingApp() {
         <section className="flow-content compare-screen">
           <div className="prompt-block"><h2>Which would you<br /><em>rather have?</em></h2></div>
           <div className="versus-grid">
-            {[left, right].map((vendor, index) => (
+            {[left, right].map((vendor) => (
               <button className="versus-card" key={vendor.id} onClick={() => chooseComparison(vendor.id)}>
                 <VendorArt vendor={vendor} />
                 <span className="versus-card__name">{vendor.name}</span>
-                {index === 0 && <i className="or-badge">or</i>}
               </button>
             ))}
+            <i className="or-badge">or</i>
           </div>
+          <button className="comparison-neutral" onClick={() => chooseComparison(null)}>Too tough <span>↔</span></button>
+          <button className="back-button" onClick={undoComparison}>← Back</button>
         </section>
       </main>
     );
@@ -582,7 +649,7 @@ export function RankingApp() {
       <main className="site-shell flow-shell">
         <AppHeader step="Phase 3: Your Favorite Item" />
         <section className="flow-content dish-screen">
-          <div className="dish-winner"><span>Your #1</span><VendorArt vendor={topVendor} compact /><h3>{topVendor.name}</h3></div>
+          <div className="dish-winner"><span>{topScoreTieCount > 1 ? "Tied for #1" : "Your #1"}</span><VendorArt vendor={topVendor} compact /><h3>{topVendor.name}</h3></div>
           <div className="prompt-block"><p className="eyebrow">Optional</p><h2>What&apos;s your go-to<br />at <em>{topVendor.name}?</em></h2></div>
           <form
             className="favorite-entry"
@@ -606,6 +673,7 @@ export function RankingApp() {
             <button className="button button--primary" type="submit" disabled={!cleanedFavorite}>View my results <span>→</span></button>
           </form>
           <button className="text-button" onClick={() => setPhase("results")}>Skip</button>
+          <button className="back-button" onClick={undoComparison}>← Back</button>
         </section>
       </main>
     );
@@ -621,7 +689,10 @@ export function RankingApp() {
             <section className="result-preview" aria-label="Your ranked campus dining spots">
               <canvas ref={shareCanvasRef} width="1080" height="1350" />
               <ol className="sr-only">
-                {scoredRanking.map(({ vendor, score }, index) => <li key={vendor.id}>{index + 1}. {vendor.name}, {score.toFixed(1)}</li>)}
+                {scoredRanking.map(({ vendor, score }) => {
+                  const displayedRank = scoredRanking.findIndex((item) => item.score === score) + 1;
+                  return <li key={vendor.id}>{displayedRank}. {vendor.name}, {score.toFixed(1)}</li>;
+                })}
               </ol>
             </section>
           ) : <section className="result-card"><div className="empty-result"><b>Nothing to rank yet.</b><span>Try again after you&apos;ve visited a few campus dining spots.</span></div></section>}
