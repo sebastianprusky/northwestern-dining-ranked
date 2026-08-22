@@ -204,14 +204,14 @@ h1 em, h2 em { color: var(--purple); font-weight: 650; }
 
 .campus-section { width: 100%; min-width: 0; margin: 0; padding: 24px; background: rgba(255, 253, 250, .72); border: 1px solid var(--line); border-radius: 24px; box-shadow: 0 20px 55px rgba(42, 31, 47, .08); }
 .section-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; }
-.section-heading h2 { font-size: clamp(30px, 2.6vw, 32px); white-space: nowrap; }
-.leaderboard-list { margin: 10px 0 0; padding: 0; display: grid; list-style: none; }
+.section-heading h2 { font-size: clamp(30px, 2.6vw, 32px); font-weight: 650; white-space: nowrap; }
+.leaderboard-list { margin: 10px 0 0; padding: 0; display: grid; color: var(--ink); list-style: none; }
 .leaderboard-list li { min-height: 42px; display: flex; align-items: center; gap: 10px; }
 .leaderboard-list .vendor-art--compact { width: 32px; min-width: 32px; height: 32px; min-height: 32px; border-radius: 9px; }
-.leaderboard-rank { width: 20px; color: var(--purple); font-family: var(--font-display), serif; font-size: 18px; font-variant-numeric: tabular-nums; }
+.leaderboard-rank { width: 20px; color: var(--purple); font-family: var(--font-display), Georgia, serif; font-size: 18px; font-weight: 650; font-variant-numeric: tabular-nums; }
 .leaderboard-list li > span:nth-of-type(2) { min-width: 0; flex: 1; }
-.leaderboard-list b { display: block; font-size: 16px; }
-.leaderboard-list strong { min-width: 42px; padding: 4px 7px; color: var(--purple); border: 1px solid var(--purple); border-radius: 999px; font-size: 12px; font-variant-numeric: tabular-nums; text-align: center; }
+.leaderboard-list b { display: block; font-size: 16px; font-weight: 650; }
+.leaderboard-list strong { min-width: 42px; padding: 4px 7px; color: var(--purple); border: 1px solid var(--purple); border-radius: 999px; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: center; }
 .leaderboard-loading { margin-top: 28px; padding: 35px; color: var(--muted); background: rgba(255,255,255,.5); border-radius: 20px; text-align: center; }
 
 @media (max-width: 760px) {

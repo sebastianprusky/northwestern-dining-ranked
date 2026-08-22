@@ -450,15 +450,24 @@ export function RankingApp() {
       [vendor.id, await loadCanvasImage(vendor.image)] as const
     ))));
 
+    const rootStyles = getComputedStyle(document.documentElement);
+    const cssToken = (name: string, fallback: string) => rootStyles.getPropertyValue(name).trim() || fallback;
+    const paper = cssToken("--paper", "#F7F4EF");
+    const ink = cssToken("--ink", "#211B24");
+    const purple = cssToken("--purple", "#4E2A84");
+    const muted = cssToken("--muted", "#746D78");
+    const sansFont = `${cssToken("--font-sans", "Arial")}, Arial, sans-serif`;
+    const displayFont = `${cssToken("--font-display", "Georgia")}, Georgia, serif`;
+
     canvas.width = 1080;
     canvas.height = 1350;
     const context = canvas.getContext("2d");
     if (!context) throw new Error("Canvas unsupported");
 
-    context.fillStyle = "#F7F4EF";
+    context.fillStyle = paper;
     context.fillRect(0, 0, canvas.width, canvas.height);
-    context.fillStyle = "#211B24";
-    context.font = "650 70px 'Fraunces', Georgia, serif";
+    context.fillStyle = ink;
+    context.font = `650 70px ${displayFont}`;
     context.fillText("My Northwestern dining ranked", 72, 128, 936);
 
     const compactRanking = scoredRanking.length > 9;
@@ -467,49 +476,49 @@ export function RankingApp() {
     scoredRanking.forEach(({ vendor, score }, index) => {
       const y = rankingStart + index * rankingStep;
 
-      context.fillStyle = "#4E2A84";
-      context.font = `650 ${compactRanking ? 27 : 30}px 'Fraunces', Georgia, serif`;
+      context.fillStyle = purple;
+      context.font = `650 60px ${displayFont}`;
       const displayedRank = scoredRanking.findIndex((item) => item.score === score) + 1;
-      context.fillText(String(displayedRank), 78, y + (compactRanking ? 49 : 52));
+      context.fillText(String(displayedRank), 78, y + 62);
 
-      const imageSize = compactRanking ? 64 : 68;
+      const imageSize = 82;
       const vendorImage = vendorImages.get(vendor.id);
-      if (vendorImage) drawRoundedCanvasImage(context, vendorImage, 130, y + 5, imageSize, 14);
+      if (vendorImage) drawRoundedCanvasImage(context, vendorImage, 130, y + 1, imageSize, 24);
 
-      context.fillStyle = "#211B24";
-      context.font = `650 ${compactRanking ? 32 : 34}px 'DM Sans', sans-serif`;
-      context.fillText(vendor.name, compactRanking ? 218 : 224, y + (compactRanking ? 52 : 54), 600);
+      context.fillStyle = ink;
+      context.font = `650 48px ${sansFont}`;
+      context.fillText(vendor.name, 230, y + 61, 590);
 
-      const scoreX = 898;
-      const scoreY = y + (compactRanking ? 18 : 19);
-      const scoreWidth = 88;
-      const scoreHeight = compactRanking ? 38 : 42;
-      context.strokeStyle = "#4E2A84";
+      const scoreX = 862;
+      const scoreY = y + 5;
+      const scoreWidth = 124;
+      const scoreHeight = 74;
+      context.strokeStyle = purple;
       context.lineWidth = 2;
       context.beginPath();
       context.roundRect(scoreX, scoreY, scoreWidth, scoreHeight, scoreHeight / 2);
       context.stroke();
-      context.fillStyle = "#4E2A84";
-      context.font = `700 ${compactRanking ? 22 : 24}px 'DM Sans', sans-serif`;
+      context.fillStyle = purple;
+      context.font = `700 36px ${sansFont}`;
       context.textAlign = "center";
-      context.fillText(score.toFixed(1), scoreX + scoreWidth / 2, scoreY + (compactRanking ? 27 : 29));
+      context.fillText(score.toFixed(1), scoreX + scoreWidth / 2, scoreY + 50);
       context.textAlign = "left";
     });
 
     if (favoriteDish && topVendor) {
-      context.fillStyle = "#4E2A84";
-      context.font = "700 22px 'DM Sans', sans-serif";
+      context.fillStyle = purple;
+      context.font = `700 22px ${sansFont}`;
       context.fillText("MY FAVORITE", 72, 1158);
-      context.fillStyle = "#211B24";
-      context.font = "650 30px 'DM Sans', sans-serif";
+      context.fillStyle = ink;
+      context.font = `650 30px ${sansFont}`;
       const favoriteLines = drawWrappedCanvasText(context, favoriteDish, 72, 1197, 936, 34);
-      context.fillStyle = "#6D6571";
-      context.font = "500 21px 'DM Sans', sans-serif";
+      context.fillStyle = muted;
+      context.font = `500 21px ${sansFont}`;
       context.fillText(`at ${topVendor.name}`, 72, 1203 + favoriteLines * 34, 936);
     }
 
-    context.fillStyle = "#6D6571";
-    context.font = "500 24px 'DM Sans', sans-serif";
+    context.fillStyle = muted;
+    context.font = `500 24px ${sansFont}`;
     context.fillText(SITE_HOSTNAME, 72, 1315);
   }, [favoriteDish, scoredRanking, topVendor]);
 
