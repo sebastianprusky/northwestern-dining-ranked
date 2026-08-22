@@ -186,7 +186,7 @@ h1 em, h2 em { color: var(--purple); font-weight: 650; }
 
 .results-shell { position: relative; height: 100dvh; padding-bottom: 14px; display: flex; flex-direction: column; }
 .results-shell .app-header { height: 86px; flex: 0 0 auto; }
-.results-intro { width: min(1040px, calc(100% - 40px)); margin: 2px auto 26px; flex: 0 0 auto; text-align: left; }
+.results-intro { width: min(1040px, calc(100% - 40px)); margin: -8px auto 34px; flex: 0 0 auto; text-align: left; }
 .results-intro h2 { font-size: clamp(40px, 3.8vw, 50px); }
 .results-intro br { display: none; }
 .results-intro > p:last-child { color: var(--muted); }
@@ -205,12 +205,12 @@ h1 em, h2 em { color: var(--purple); font-weight: 650; }
 .campus-section { width: 100%; min-width: 0; margin: 0; padding: 24px; background: rgba(255, 253, 250, .72); border: 1px solid var(--line); border-radius: 24px; box-shadow: 0 20px 55px rgba(42, 31, 47, .08); }
 .section-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; }
 .section-heading h2 { font-size: clamp(30px, 2.6vw, 32px); white-space: nowrap; }
-.leaderboard-list { margin: 10px 0 0; padding: 0; display: grid; list-style: none; border-top: 1px solid var(--line); }
-.leaderboard-list li { min-height: 42px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--line); }
+.leaderboard-list { margin: 10px 0 0; padding: 0; display: grid; list-style: none; }
+.leaderboard-list li { min-height: 42px; display: flex; align-items: center; gap: 10px; }
 .leaderboard-list .vendor-art--compact { width: 32px; min-width: 32px; height: 32px; min-height: 32px; border-radius: 9px; }
 .leaderboard-rank { width: 20px; color: var(--purple); font-family: var(--font-display), serif; font-size: 18px; font-variant-numeric: tabular-nums; }
 .leaderboard-list li > span:nth-of-type(2) { min-width: 0; flex: 1; }
-.leaderboard-list b { display: block; font-size: 13px; }
+.leaderboard-list b { display: block; font-size: 16px; }
 .leaderboard-list strong { min-width: 42px; padding: 4px 7px; color: var(--purple); border: 1px solid var(--purple); border-radius: 999px; font-size: 12px; font-variant-numeric: tabular-nums; text-align: center; }
 .leaderboard-loading { margin-top: 28px; padding: 35px; color: var(--muted); background: rgba(255,255,255,.5); border-radius: 20px; text-align: center; }
 
@@ -251,7 +251,7 @@ h1 em, h2 em { color: var(--purple); font-weight: 650; }
   .favorite-entry { margin-top: clamp(18px, 3.5dvh, 28px); }
   .results-shell { height: auto; min-height: 100dvh; padding-bottom: 55px; display: block; }
   .results-shell .app-header { height: 58px; }
-  .results-intro { width: calc(100% - 40px); margin: 18px auto 17px; text-align: center; }
+  .results-intro { width: calc(100% - 40px); margin: 10px auto 24px; text-align: center; }
   .results-intro h2 { font-size: 35px; }
   .results-intro br { display: initial; }
   .results-layout { width: 100%; display: block; }
@@ -267,12 +267,12 @@ h1 em, h2 em { color: var(--purple); font-weight: 650; }
   .leaderboard-list li { min-height: 78px; gap: 14px; }
   .leaderboard-list .vendor-art--compact { width: 48px; min-width: 48px; height: 48px; min-height: 48px; border-radius: 14px; }
   .leaderboard-rank { width: 25px; font-size: 22px; }
-  .leaderboard-list b { font-size: inherit; }
+  .leaderboard-list b { font-size: 17px; }
   .leaderboard-list strong { padding: 7px 10px; font-size: 13px; }
 }
 
 @media (min-width: 761px) and (max-height: 760px) {
-  .results-intro { margin-bottom: 20px; }
+  .results-intro { margin-bottom: 30px; }
   .campus-section { padding: 16px 18px; }
   .section-heading h2 { font-size: 32px; }
   .leaderboard-list { margin-top: 8px; }

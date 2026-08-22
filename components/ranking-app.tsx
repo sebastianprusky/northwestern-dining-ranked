@@ -464,16 +464,8 @@ export function RankingApp() {
     const compactRanking = scoredRanking.length > 9;
     const rankingStart = 178;
     const rankingStep = compactRanking ? 84 : 92;
-    const rankingHeight = compactRanking ? 74 : 80;
     scoredRanking.forEach(({ vendor, score }, index) => {
       const y = rankingStart + index * rankingStep;
-
-      context.strokeStyle = "#DCD5CF";
-      context.lineWidth = 2;
-      context.beginPath();
-      context.moveTo(72, y + rankingHeight);
-      context.lineTo(1008, y + rankingHeight);
-      context.stroke();
 
       context.fillStyle = "#4E2A84";
       context.font = `650 ${compactRanking ? 27 : 30}px 'Fraunces', Georgia, serif`;
@@ -485,8 +477,8 @@ export function RankingApp() {
       if (vendorImage) drawRoundedCanvasImage(context, vendorImage, 130, y + 5, imageSize, 14);
 
       context.fillStyle = "#211B24";
-      context.font = `650 ${compactRanking ? 27 : 30}px 'DM Sans', sans-serif`;
-      context.fillText(vendor.name, compactRanking ? 218 : 224, y + (compactRanking ? 49 : 52), 600);
+      context.font = `650 ${compactRanking ? 32 : 34}px 'DM Sans', sans-serif`;
+      context.fillText(vendor.name, compactRanking ? 218 : 224, y + (compactRanking ? 52 : 54), 600);
 
       const scoreX = 898;
       const scoreY = y + (compactRanking ? 18 : 19);
@@ -507,13 +499,13 @@ export function RankingApp() {
     if (favoriteDish && topVendor) {
       context.fillStyle = "#4E2A84";
       context.font = "700 22px 'DM Sans', sans-serif";
-      context.fillText("MY FAVORITE", 72, 1134);
+      context.fillText("MY FAVORITE", 72, 1158);
       context.fillStyle = "#211B24";
       context.font = "650 30px 'DM Sans', sans-serif";
-      const favoriteLines = drawWrappedCanvasText(context, favoriteDish, 72, 1173, 936, 34);
+      const favoriteLines = drawWrappedCanvasText(context, favoriteDish, 72, 1197, 936, 34);
       context.fillStyle = "#6D6571";
       context.font = "500 21px 'DM Sans', sans-serif";
-      context.fillText(`at ${topVendor.name}`, 72, 1179 + favoriteLines * 34, 936);
+      context.fillText(`at ${topVendor.name}`, 72, 1203 + favoriteLines * 34, 936);
     }
 
     context.fillStyle = "#6D6571";
