@@ -44,6 +44,8 @@ type LeaderboardResponse = {
 
 const emptyBuckets = (): BucketMap => ({ liked: [], fine: [], disliked: [] });
 const bucketOrder: Bucket[] = ["liked", "fine", "disliked"];
+const leaderboardUnlockCount = 5;
+const leaderboardSharingGoal = 25;
 const bucketShuffleSeeds: Record<Bucket, number> = {
   liked: 0x9e3779b9,
   fine: 0x85ebca6b,
@@ -754,13 +756,26 @@ export function RankingApp() {
         <section className="campus-section">
           <div className="section-heading"><h2>Northwestern&apos;s Leaderboard</h2></div>
           {!leaderboard ? <div className="leaderboard-loading">Loading the campus ranking…</div> : (
-            <ol className="leaderboard-list">
-              {leaderboard.entries.map((entry, index) => {
-                const vendor = vendorById[entry.vendorId];
-                if (!vendor) return null;
-                return <li key={entry.vendorId}><span className="leaderboard-rank">{index + 1}</span><VendorArt vendor={vendor} compact /><span><b>{vendor.name}</b></span><strong>{entry.averageScore.toFixed(1)}</strong></li>;
-              })}
-            </ol>
+            leaderboard.completionCount < leaderboardUnlockCount ? (
+              <div className="leaderboard-message">share with your friends to gather enough data for a leaderboard :)</div>
+            ) : (
+              <>
+                <p className="leaderboard-community-note">
+                  {leaderboard.completionCount} students ranked
+                  <span aria-hidden="true"> · </span>
+                  {leaderboard.completionCount < leaderboardSharingGoal
+                    ? `Share with your friends to help us reach ${leaderboardSharingGoal} :)`
+                    : "Share with your friends to make the leaderboard even better :)"}
+                </p>
+                <ol className="leaderboard-list">
+                  {leaderboard.entries.map((entry, index) => {
+                    const vendor = vendorById[entry.vendorId];
+                    if (!vendor) return null;
+                    return <li key={entry.vendorId}><span className="leaderboard-rank">{index + 1}</span><VendorArt vendor={vendor} compact /><span><b>{vendor.name}</b></span><strong>{entry.averageScore.toFixed(1)}</strong></li>;
+                  })}
+                </ol>
+              </>
+            )
           )}
         </section>
       </div>

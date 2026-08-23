@@ -216,6 +216,8 @@ h1 em, h2 em { color: var(--purple); font-weight: 650; }
 .leaderboard-list b { display: block; font-size: 16px; font-weight: 650; }
 .leaderboard-list strong { min-width: 42px; padding: 4px 7px; color: var(--purple); border: 1px solid var(--purple); border-radius: 999px; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: center; }
 .leaderboard-loading { margin-top: 28px; padding: 35px; color: var(--muted); background: rgba(255,255,255,.5); border-radius: 20px; text-align: center; }
+.leaderboard-message { margin-top: 18px; padding: 28px 24px; color: var(--purple); background: rgba(255,255,255,.58); border: 1px solid rgba(78,42,132,.14); border-radius: 20px; font-family: var(--font-display), Georgia, serif; font-size: clamp(18px, 2.2vw, 23px); font-style: italic; line-height: 1.35; text-align: center; }
+.leaderboard-community-note { margin: 12px 0 0; color: var(--muted); font-size: 13px; line-height: 1.4; }
 
 @media (max-width: 760px) {
   .app-header { width: calc(100% - 32px); height: 58px; }
