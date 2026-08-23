@@ -45,7 +45,7 @@ type LeaderboardResponse = {
 const emptyBuckets = (): BucketMap => ({ liked: [], fine: [], disliked: [] });
 const bucketOrder: Bucket[] = ["liked", "fine", "disliked"];
 const leaderboardUnlockCount = 5;
-const leaderboardSharingGoal = 25;
+const leaderboardMilestones = [25, 50, 100, 200, 500, 1000];
 const bucketShuffleSeeds: Record<Bucket, number> = {
   liked: 0x9e3779b9,
   fine: 0x85ebca6b,
@@ -57,6 +57,17 @@ const bucketMeta: Record<Bucket, { label: string; mark: string }> = {
   fine: { label: "Fine", mark: "—" },
   disliked: { label: "Disliked", mark: "↓" },
 };
+
+function nextLeaderboardMilestone(completionCount: number) {
+  const fixedMilestone = leaderboardMilestones.find((milestone) => milestone > completionCount);
+  if (fixedMilestone) return fixedMilestone;
+
+  const magnitude = 10 ** Math.floor(Math.log10(Math.max(completionCount, 1)));
+  const normalizedCount = completionCount / magnitude;
+  if (normalizedCount < 2) return 2 * magnitude;
+  if (normalizedCount < 5) return 5 * magnitude;
+  return 10 * magnitude;
+}
 
 function shuffleWithSeed<T>(items: readonly T[], seed: number) {
   const shuffled = [...items];
@@ -761,11 +772,9 @@ export function RankingApp() {
             ) : (
               <>
                 <p className="leaderboard-community-note">
-                  {leaderboard.completionCount} students ranked
+                  {leaderboard.completionCount.toLocaleString("en-US")} students ranked
                   <span aria-hidden="true"> · </span>
-                  {leaderboard.completionCount < leaderboardSharingGoal
-                    ? `Share with your friends to help us reach ${leaderboardSharingGoal} :)`
-                    : "Share with your friends to make the leaderboard even better :)"}
+                  Share with your friends to help us reach {nextLeaderboardMilestone(leaderboard.completionCount).toLocaleString("en-US")} :)
                 </p>
                 <ol className="leaderboard-list">
                   {leaderboard.entries.map((entry, index) => {
