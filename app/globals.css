@@ -235,7 +235,7 @@ h1 em, h2 em { color: var(--purple); font-weight: 650; }
   .stack-card__label b { font-size: 19px; }
   .progress-row { margin-top: 8px; }
   .flow-content { min-height: 0; padding-top: clamp(16px, 3.5dvh, 30px); padding-bottom: max(18px, env(safe-area-inset-bottom)); display: flex; flex: 1; flex-direction: column; }
-  .prompt-block h2, .results-intro h2 { font-size: clamp(35px, 10.5vw, 43px); }
+  .prompt-block h2 { font-size: clamp(35px, 10.5vw, 43px); }
   .bucket-screen .prompt-block h2 { font-size: clamp(31px, 9.2vw, 38px); }
   .bucket-screen .focus-card { width: 100%; min-height: 0; margin-top: clamp(14px, 2.7dvh, 24px); margin-bottom: clamp(12px, 2.4dvh, 22px); display: flex; flex: 1; flex-direction: column; }
   .bucket-screen .focus-card .vendor-art { min-height: 0; flex: 1; }
@@ -260,10 +260,8 @@ h1 em, h2 em { color: var(--purple); font-weight: 650; }
   .dish-screen .text-button, .dish-screen .back-button { margin-top: 18px; }
   .results-shell { height: auto; min-height: 100dvh; padding-bottom: 55px; display: block; }
   .results-shell .app-header { height: 58px; }
-  .results-intro { width: calc(100% - 40px); margin: 10px auto 24px; text-align: center; }
-  .results-intro h2 { font-size: 35px; }
-  .results-intro br { display: initial; }
-  .results-layout { width: 100%; display: block; }
+  .results-intro { display: none; }
+  .results-layout { width: 100%; padding-top: 18px; display: block; }
   .personal-results { width: min(760px, calc(100% - 40px)); margin: 0 auto; }
   .result-card { padding: 15px; border-radius: 23px; }
   .share-actions { width: min(600px, calc(100% - 40px)); margin-top: 20px; grid-template-columns: 1fr; }
