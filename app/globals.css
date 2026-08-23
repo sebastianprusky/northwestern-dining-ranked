@@ -191,9 +191,12 @@ h1 em, h2 em { color: var(--purple); font-weight: 650; }
 .results-intro br { display: none; }
 .results-intro > p:last-child { color: var(--muted); }
 .results-layout { width: min(1040px, calc(100% - 40px)); min-height: 0; margin: 0 auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: clamp(48px, 5vw, 56px); }
-.personal-results { width: min(440px, 100%, calc((100dvh - 260px) * .8)); min-width: 0; justify-self: start; }
-.result-preview { width: 100%; aspect-ratio: 4 / 5; margin: 0 auto; overflow: hidden; background: var(--paper); border: 1px solid var(--line); border-radius: 24px; box-shadow: 0 20px 55px rgba(42, 31, 47, .11); }
-.result-preview canvas { width: 100%; height: 100%; display: block; }
+.personal-results { width: 100%; min-width: 0; }
+.personal-ranking { width: 100%; min-width: 0; }
+.personal-favorite { margin-top: 22px; display: grid; gap: 3px; }
+.personal-favorite span { color: var(--purple); font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.personal-favorite b { font-size: 16px; font-weight: 650; }
+.personal-favorite small { color: var(--muted); font-size: 12px; }
 .result-card { width: min(600px, calc(100% - 28px)); margin: 0 auto; padding: 24px; background: var(--white); border: 1px solid var(--line); border-radius: 28px; box-shadow: 0 28px 75px rgba(42, 31, 47, .12); }
 .empty-result { padding: 45px 20px; display: grid; gap: 7px; text-align: center; background: #f5f1ed; border-radius: 18px; }
 .empty-result span { color: var(--muted); font-size: 12px; }
@@ -217,12 +220,12 @@ h1 em, h2 em { color: var(--purple); font-weight: 650; }
 @media (max-width: 760px) {
   .app-header { width: calc(100% - 32px); height: 58px; }
   .flow-shell { height: 100dvh; min-height: 100dvh; display: flex; flex-direction: column; }
-  .landing__hero { width: calc(100% - 34px); min-height: 0; padding: 28px 0 16px; display: flex; flex: 1; flex-direction: column; align-items: stretch; justify-content: center; gap: 18px; }
-  .project-disclaimer { padding: 10px 0 max(14px, env(safe-area-inset-bottom)); font-size: 9px; }
+  .landing__hero { width: calc(100% - 34px); min-height: 0; padding: 24px 0 10px; display: flex; flex: 1; flex-direction: column; align-items: stretch; justify-content: center; gap: 14px; }
+  .project-disclaimer { position: relative; z-index: 4; padding: 10px 0 max(14px, env(safe-area-inset-bottom)); font-size: 9px; }
   h1 { font-size: clamp(47px, 14vw, 66px); }
   .landing__copy .button { margin-top: 22px; }
   .button--large { width: 100%; }
-  .card-stack { min-height: clamp(205px, 31dvh, 285px); margin-top: 0; }
+  .card-stack { min-height: clamp(250px, 37dvh, 300px); margin-top: 0; }
   .stack-card { width: min(205px, 57vw); padding: 8px; border-radius: 18px; }
   .stack-card .vendor-art { min-height: clamp(122px, 20dvh, 160px); border-radius: 12px; }
   .stack-card--1 { top: 42px; left: 4%; }
@@ -261,8 +264,7 @@ h1 em, h2 em { color: var(--purple); font-weight: 650; }
   .results-intro h2 { font-size: 35px; }
   .results-intro br { display: initial; }
   .results-layout { width: 100%; display: block; }
-  .personal-results { width: 100%; }
-  .result-preview { width: min(540px, calc(100% - 28px)); border-radius: 20px; }
+  .personal-results { width: min(760px, calc(100% - 40px)); margin: 0 auto; }
   .result-card { padding: 15px; border-radius: 23px; }
   .share-actions { width: min(600px, calc(100% - 40px)); margin-top: 20px; grid-template-columns: 1fr; }
   .share-actions p { grid-column: 1; }
@@ -275,6 +277,7 @@ h1 em, h2 em { color: var(--purple); font-weight: 650; }
   .leaderboard-rank { width: 25px; font-size: 22px; }
   .leaderboard-list b { font-size: 17px; }
   .leaderboard-list strong { padding: 7px 10px; font-size: 13px; }
+  .personal-favorite { margin-top: 28px; }
 }
 
 @media (min-width: 761px) and (max-height: 760px) {
@@ -299,6 +302,14 @@ h1 em, h2 em { color: var(--purple); font-weight: 650; }
   .favorite-entry { margin-top: 24px; }
   .favorite-entry input, .favorite-entry .button { min-height: 56px; }
   .dish-screen .text-button, .dish-screen .back-button { margin-top: 14px; }
+  .landing__hero { padding-top: 18px; gap: 10px; }
+  .landing__copy .button { margin-top: 16px; min-height: 54px; }
+  .card-stack { min-height: 232px; }
+  .stack-card { width: min(188px, 54vw); }
+  .stack-card .vendor-art { min-height: 116px; }
+  .stack-card--1 { top: 36px; }
+  .stack-card--2 { top: 8px; }
+  .stack-card--3 { top: 54px; }
 }
 
 @media (min-width: 351px) and (max-width: 760px) and (min-height: 561px) and (max-height: 720px) {

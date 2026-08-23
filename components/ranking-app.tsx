@@ -217,7 +217,9 @@ function getDeviceToken() {
   const key = "ryme-device-token";
   const existing = window.localStorage.getItem(key);
   if (existing) return existing;
-  const next = crypto.randomUUID();
+  const next = typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : Array.from(crypto.getRandomValues(new Uint32Array(4)), (value) => value.toString(16).padStart(8, "0")).join("-");
   window.localStorage.setItem(key, next);
   return next;
 }
@@ -239,7 +241,6 @@ export function RankingApp() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardResponse | null>(null);
   const [shareStatus, setShareStatus] = useState<string | null>(null);
   const savedSignature = useRef<string | null>(null);
-  const shareCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const scoredRanking = useMemo(() => {
     return bucketOrder.flatMap((bucket) =>
@@ -572,17 +573,6 @@ export function RankingApp() {
     context.fillText(SITE_HOSTNAME, 72, 1315);
   }, [favoriteDish, scoredRanking, topVendor]);
 
-  useEffect(() => {
-    if (phase !== "results" || scoredRanking.length === 0 || !shareCanvasRef.current) return;
-
-    let cancelled = false;
-    void document.fonts.ready.then(async () => {
-      if (!cancelled && shareCanvasRef.current) await drawShareCanvas(shareCanvasRef.current);
-    });
-
-    return () => { cancelled = true; };
-  }, [drawShareCanvas, phase, scoredRanking.length]);
-
   async function createShareFile() {
     await document.fonts.ready;
     const canvas = document.createElement("canvas");
@@ -719,7 +709,6 @@ export function RankingApp() {
               placeholder="e.g. Chicken quesadilla, Rawcai Bowl"
               maxLength={80}
               autoComplete="off"
-              autoFocus
             />
             <button className="button button--primary" type="submit" disabled={!cleanedFavorite}>View my results <span>→</span></button>
           </form>
@@ -737,20 +726,34 @@ export function RankingApp() {
       <div className="results-layout">
         <div className="personal-results">
           {scoredRanking.length > 0 ? (
-            <section className="result-preview" aria-label="Your ranked campus dining spots">
-              <canvas ref={shareCanvasRef} width="1080" height="1350" />
-              <ol className="sr-only">
+            <section className="personal-ranking" aria-label="Your ranked campus dining spots">
+              <div className="section-heading"><h2>My Northwestern dining ranked</h2></div>
+              <ol className="leaderboard-list">
                 {scoredRanking.map(({ vendor, score }) => {
                   const displayedRank = scoredRanking.findIndex((item) => item.score === score) + 1;
-                  return <li key={vendor.id}>{displayedRank}. {vendor.name}, {score.toFixed(1)}</li>;
+                  return (
+                    <li key={vendor.id}>
+                      <span className="leaderboard-rank">{displayedRank}</span>
+                      <VendorArt vendor={vendor} compact />
+                      <span><b>{vendor.name}</b></span>
+                      <strong>{score.toFixed(1)}</strong>
+                    </li>
+                  );
                 })}
               </ol>
+              {favoriteDish && topVendor && (
+                <div className="personal-favorite">
+                  <span>My favorite</span>
+                  <b>{favoriteDish}</b>
+                  <small>at {topVendor.name}</small>
+                </div>
+              )}
             </section>
           ) : <section className="result-card"><div className="empty-result"><b>Nothing to rank yet.</b><span>Try again after you&apos;ve visited a few campus dining spots.</span></div></section>}
 
           <div className={`share-actions${scoredRanking.length === 0 ? " share-actions--single" : ""}`}>
-            {scoredRanking.length > 0 && <button className="button button--primary" onClick={shareResult}>Share result <span>↗</span></button>}
-            <button className="button button--secondary" onClick={reset}>Rank again <span>↻</span></button>
+            {scoredRanking.length > 0 && <button className="button button--primary" onClick={shareResult}>Share result</button>}
+            <button className="button button--secondary" onClick={reset}>Rank again</button>
             {shareStatus && <p role="status">{shareStatus}</p>}
           </div>
         </div>
