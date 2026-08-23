@@ -37,6 +37,7 @@ type LeaderboardEntry = {
 
 type LeaderboardResponse = {
   completionCount: number;
+  uniqueVisitorCount?: number;
   entries: LeaderboardEntry[];
   mode?: "live" | "demo";
 };
@@ -213,17 +214,6 @@ function AppHeader({ step }: { step: string }) {
   );
 }
 
-function getDeviceToken() {
-  const key = "ryme-device-token";
-  const existing = window.localStorage.getItem(key);
-  if (existing) return existing;
-  const next = typeof crypto.randomUUID === "function"
-    ? crypto.randomUUID()
-    : Array.from(crypto.getRandomValues(new Uint32Array(4)), (value) => value.toString(16).padStart(8, "0")).join("-");
-  window.localStorage.setItem(key, next);
-  return next;
-}
-
 export function RankingApp() {
   const [phase, setPhase] = useState<Phase>("landing");
   const [sessionSeed, setSessionSeed] = useState(0);
@@ -241,6 +231,10 @@ export function RankingApp() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardResponse | null>(null);
   const [shareStatus, setShareStatus] = useState<string | null>(null);
   const savedSignature = useRef<string | null>(null);
+
+  useEffect(() => {
+    void fetch("/api/visitor", { method: "POST" }).catch(() => undefined);
+  }, []);
 
   const scoredRanking = useMemo(() => {
     return bucketOrder.flatMap((bucket) =>
@@ -486,7 +480,6 @@ export function RankingApp() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        deviceToken: getDeviceToken(),
         rankings,
         favoriteDish: topVendor && favoriteDish ? {
           vendorId: topVendor.id,

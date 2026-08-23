@@ -1,4 +1,13 @@
 import { createHash } from "node:crypto";
+import { NextRequest, NextResponse } from "next/server";
+import { hasSupabaseConfig, supabaseFetch } from "@/lib/supabase-server";
+import {
+  getOrCreateVisitorId,
+  isProductionTrackingRequest,
+  setVisitorCookie,
+  visitorTokenHash,
+  visitorTokenPrefix,
+} from "@/lib/visitor";
 import { vendors, type Bucket } from "@/lib/vendors";
 
 export const dynamic = "force-dynamic";
@@ -30,6 +39,7 @@ const demoFavorites: Record<string, string> = {
 function demoLeaderboard() {
   return {
     completionCount: 0,
+    uniqueVisitorCount: 0,
     mode: "demo" as const,
     entries: vendors
       .map((vendor) => ({
@@ -42,41 +52,24 @@ function demoLeaderboard() {
   };
 }
 
-function config() {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  return url && key ? { url: url.replace(/\/$/, ""), key } : null;
-}
-
-async function supabaseFetch(path: string, init: RequestInit = {}) {
-  const current = config();
-  if (!current) throw new Error("Supabase is not configured");
-
-  return fetch(`${current.url}/rest/v1/${path}`, {
-    ...init,
-    headers: {
-      apikey: current.key,
-      Authorization: `Bearer ${current.key}`,
-      "Content-Type": "application/json",
-      ...init.headers,
-    },
-    cache: "no-store",
-  });
-}
-
 export async function GET() {
-  if (!config()) return Response.json(demoLeaderboard());
+  if (!hasSupabaseConfig()) return Response.json(demoLeaderboard());
 
   try {
-    const [rankingsResponse, favoritesResponse] = await Promise.all([
+    const [sessionsResponse, rankingsResponse, favoritesResponse] = await Promise.all([
+      supabaseFetch(`sessions?select=id&token_hash=like.${encodeURIComponent(`${visitorTokenPrefix}*`)}`),
       supabaseFetch(`session_rankings?select=session_id,vendor_id,computed_score&school_id=eq.${schoolId}`),
-      supabaseFetch(`session_favorite_dishes?select=vendor_id,dish_name&school_id=eq.${schoolId}`),
+      supabaseFetch(`session_favorite_dishes?select=session_id,vendor_id,dish_name&school_id=eq.${schoolId}`),
     ]);
 
-    if (!rankingsResponse.ok || !favoritesResponse.ok) throw new Error("Could not read leaderboard");
+    if (!sessionsResponse.ok || !rankingsResponse.ok || !favoritesResponse.ok) throw new Error("Could not read leaderboard");
 
-    const rankings = await rankingsResponse.json() as Array<{ session_id: string; vendor_id: string; computed_score: number }>;
-    const favorites = await favoritesResponse.json() as Array<{ vendor_id: string; dish_name: string }>;
+    const productionSessions = await sessionsResponse.json() as Array<{ id: string }>;
+    const productionSessionIds = new Set(productionSessions.map((session) => session.id));
+    const rankings = (await rankingsResponse.json() as Array<{ session_id: string; vendor_id: string; computed_score: number }>)
+      .filter((ranking) => productionSessionIds.has(ranking.session_id));
+    const favorites = (await favoritesResponse.json() as Array<{ session_id: string; vendor_id: string; dish_name: string }>)
+      .filter((favorite) => productionSessionIds.has(favorite.session_id));
     const sessions = new Set(rankings.map((ranking) => ranking.session_id));
 
     const entries = vendors.map((vendor) => {
@@ -95,7 +88,12 @@ export async function GET() {
       };
     }).sort((a, b) => b.averageScore - a.averageScore || b.ratingCount - a.ratingCount);
 
-    return Response.json({ completionCount: sessions.size, entries, mode: "live" });
+    return Response.json({
+      completionCount: sessions.size,
+      uniqueVisitorCount: productionSessions.length,
+      entries,
+      mode: "live",
+    });
   } catch {
     return Response.json(demoLeaderboard());
   }
@@ -126,8 +124,11 @@ function cleanFavoriteDish(value: unknown) {
   return cleaned && cleaned.length <= 80 ? cleaned : null;
 }
 
-export async function POST(request: Request) {
-  if (!config()) return Response.json({ ok: true, mode: "demo" });
+export async function POST(request: NextRequest) {
+  if (!hasSupabaseConfig()) return NextResponse.json({ ok: true, mode: "demo" });
+  if (!isProductionTrackingRequest(request)) {
+    return NextResponse.json({ ok: true, mode: "non-production" });
+  }
 
   const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
   const ipHash = createHash("sha256").update(forwarded).digest("hex");
@@ -137,20 +138,23 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json() as {
-      deviceToken?: string;
       rankings?: unknown[];
       favoriteDish?: { vendorId?: string; dishName?: string } | null;
     };
 
-    if (!body.deviceToken || body.deviceToken.length > 100 || !Array.isArray(body.rankings) || !body.rankings.every(validRanking)) {
-      return Response.json({ error: "Invalid ranking" }, { status: 400 });
+    if (!Array.isArray(body.rankings) || !body.rankings.every(validRanking)) {
+      return NextResponse.json({ error: "Invalid ranking" }, { status: 400 });
     }
 
-    const tokenHash = createHash("sha256").update(body.deviceToken).digest("hex");
+    const visitorId = getOrCreateVisitorId(request);
     const sessionResponse = await supabaseFetch("sessions?on_conflict=school_id,token_hash", {
       method: "POST",
       headers: { Prefer: "resolution=merge-duplicates,return=representation" },
-      body: JSON.stringify({ school_id: schoolId, token_hash: tokenHash, updated_at: new Date().toISOString() }),
+      body: JSON.stringify({
+        school_id: schoolId,
+        token_hash: visitorTokenHash(visitorId),
+        updated_at: new Date().toISOString(),
+      }),
     });
     if (!sessionResponse.ok) throw new Error("Could not save session");
     const sessions = await sessionResponse.json() as Array<{ id: string }>;
@@ -193,8 +197,8 @@ export async function POST(request: Request) {
       }
     }
 
-    return Response.json({ ok: true, mode: "live" });
+    return setVisitorCookie(NextResponse.json({ ok: true, mode: "live" }), visitorId);
   } catch {
-    return Response.json({ error: "Could not save ranking" }, { status: 500 });
+    return NextResponse.json({ error: "Could not save ranking" }, { status: 500 });
   }
 }

@@ -20,7 +20,9 @@ Open `http://localhost:3000`. Without backend environment variables, the full ra
 3. Copy `.env.example` to `.env.local` and add the project URL and service-role key.
 4. Restart the development server.
 
-The service-role key is only read inside Next.js route handlers and is never shipped to the browser. Students never create an account. A random browser token is hashed server-side and used to replace that browser's previous ranking, while a short IP-based throttle discourages rapid spam without storing the IP address.
+The service-role key is only read inside Next.js route handlers and is never shipped to the browser. Students never create an account. On the canonical production site, a long-lived first-party cookie identifies an anonymous browser installation. Its value is hashed server-side and used to update one visitor row and replace that visitor's previous ranking. Localhost and Vercel preview deployments never write visitor or ranking analytics. Different browsers, devices, private windows, and cleared cookies still count separately, while a short IP-based throttle discourages rapid spam without storing the IP address.
+
+`GET /api/leaderboard` includes two production-only totals: `uniqueVisitorCount` for browsers that opened the site and `completionCount` for browsers that completed a ranking. Legacy development/test rows are excluded from both metrics.
 
 ## Deploy
 

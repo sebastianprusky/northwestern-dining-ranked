@@ -20,6 +20,8 @@ create table if not exists public.sessions (
   unique (school_id, token_hash)
 );
 
+comment on table public.sessions is 'Anonymous production visitors. Versioned token hashes distinguish current visitor tracking from legacy test sessions.';
+
 create table if not exists public.session_rankings (
   session_id uuid not null references public.sessions(id) on delete cascade,
   school_id text not null references public.schools(id),
