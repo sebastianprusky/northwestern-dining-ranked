@@ -43,12 +43,42 @@ type LeaderboardResponse = {
 
 const emptyBuckets = (): BucketMap => ({ liked: [], fine: [], disliked: [] });
 const bucketOrder: Bucket[] = ["liked", "fine", "disliked"];
+const bucketShuffleSeeds: Record<Bucket, number> = {
+  liked: 0x9e3779b9,
+  fine: 0x85ebca6b,
+  disliked: 0xc2b2ae35,
+};
 
 const bucketMeta: Record<Bucket, { label: string; mark: string }> = {
   liked: { label: "Liked", mark: "↑" },
   fine: { label: "Fine", mark: "—" },
   disliked: { label: "Disliked", mark: "↓" },
 };
+
+function shuffleWithSeed<T>(items: readonly T[], seed: number) {
+  const shuffled = [...items];
+  let state = seed >>> 0;
+  const random = () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let value = state;
+    value = Math.imul(value ^ (value >>> 15), value | 1);
+    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+  };
+
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(random() * (index + 1));
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+
+  return shuffled;
+}
+
+function createSessionSeed() {
+  const value = new Uint32Array(1);
+  crypto.getRandomValues(value);
+  return value[0];
+}
 
 function createSortMachine(bucket: Bucket, items: string[], remainingBuckets: Bucket[]): SortMachine {
   return {
@@ -194,8 +224,11 @@ function getDeviceToken() {
 
 export function RankingApp() {
   const [phase, setPhase] = useState<Phase>("landing");
+  const [sessionSeed, setSessionSeed] = useState(0);
+  const [vendorOrder, setVendorOrder] = useState<Vendor[]>(() => [...vendors]);
   const [bucketIndex, setBucketIndex] = useState(0);
   const [buckets, setBuckets] = useState<BucketMap>(emptyBuckets);
+  const [comparisonBuckets, setComparisonBuckets] = useState<BucketMap>(emptyBuckets);
   const [sorted, setSorted] = useState<BucketMap>(emptyBuckets);
   const [machine, setMachine] = useState<SortMachine | null>(null);
   const [comparisons, setComparisons] = useState(0);
@@ -223,8 +256,11 @@ export function RankingApp() {
 
   const reset = useCallback(() => {
     setPhase("landing");
+    setSessionSeed(0);
+    setVendorOrder([...vendors]);
     setBucketIndex(0);
     setBuckets(emptyBuckets());
+    setComparisonBuckets(emptyBuckets());
     setSorted(emptyBuckets());
     setMachine(null);
     setComparisons(0);
@@ -235,14 +271,27 @@ export function RankingApp() {
     setShareStatus(null);
   }, []);
 
+  function startRanking() {
+    const seed = createSessionSeed();
+    setSessionSeed(seed);
+    setVendorOrder(shuffleWithSeed(vendors, seed));
+    setPhase("bucket");
+  }
+
   const beginComparisons = useCallback((finalBuckets: BucketMap) => {
-    const sortable = bucketOrder.filter((bucket) => finalBuckets[bucket].length >= 2);
+    const shuffledBuckets: BucketMap = {
+      liked: shuffleWithSeed(finalBuckets.liked, sessionSeed ^ bucketShuffleSeeds.liked),
+      fine: shuffleWithSeed(finalBuckets.fine, sessionSeed ^ bucketShuffleSeeds.fine),
+      disliked: shuffleWithSeed(finalBuckets.disliked, sessionSeed ^ bucketShuffleSeeds.disliked),
+    };
+    const sortable = bucketOrder.filter((bucket) => shuffledBuckets[bucket].length >= 2);
     setComparisonHistory([]);
     setNeutralPairs([]);
+    setComparisonBuckets(shuffledBuckets);
     setSorted({
-      liked: [...finalBuckets.liked],
-      fine: [...finalBuckets.fine],
-      disliked: [...finalBuckets.disliked],
+      liked: [...shuffledBuckets.liked],
+      fine: [...shuffledBuckets.fine],
+      disliked: [...shuffledBuckets.disliked],
     });
 
     if (bucketOrder.every((bucket) => finalBuckets[bucket].length === 0)) {
@@ -256,13 +305,13 @@ export function RankingApp() {
     }
 
     const [first, ...remaining] = sortable;
-    const started = advanceMachine(createSortMachine(first, finalBuckets[first], remaining));
+    const started = advanceMachine(createSortMachine(first, shuffledBuckets[first], remaining));
     setMachine(started.machine ?? null);
     setPhase("compare");
-  }, []);
+  }, [sessionSeed]);
 
   function chooseBucket(choice: Bucket | "untried") {
-    const vendor = vendors[bucketIndex];
+    const vendor = vendorOrder[bucketIndex];
     let nextBuckets = buckets;
 
     if (choice !== "untried") {
@@ -270,7 +319,7 @@ export function RankingApp() {
       setBuckets(nextBuckets);
     }
 
-    if (bucketIndex === vendors.length - 1) {
+    if (bucketIndex === vendorOrder.length - 1) {
       beginComparisons(nextBuckets);
     } else {
       setBucketIndex((current) => current + 1);
@@ -282,7 +331,7 @@ export function RankingApp() {
       setPhase("landing");
       return;
     }
-    const previousVendor = vendors[bucketIndex - 1];
+    const previousVendor = vendorOrder[bucketIndex - 1];
     setBuckets((current) => ({
       liked: current.liked.filter((id) => id !== previousVendor.id),
       fine: current.fine.filter((id) => id !== previousVendor.id),
@@ -346,7 +395,7 @@ export function RankingApp() {
 
     const [nextBucket, ...remainingBuckets] = machine.remainingBuckets;
     if (nextBucket) {
-      const nextMachine = advanceMachine(createSortMachine(nextBucket, buckets[nextBucket], remainingBuckets));
+      const nextMachine = advanceMachine(createSortMachine(nextBucket, comparisonBuckets[nextBucket], remainingBuckets));
       setMachine(nextMachine.machine ?? null);
     } else {
       setMachine(null);
@@ -355,14 +404,15 @@ export function RankingApp() {
   }
 
   function returnToBuckets() {
-    const lastVendor = vendors[vendors.length - 1];
+    const lastVendor = vendorOrder[vendorOrder.length - 1];
     setBuckets((current) => ({
       liked: current.liked.filter((id) => id !== lastVendor.id),
       fine: current.fine.filter((id) => id !== lastVendor.id),
       disliked: current.disliked.filter((id) => id !== lastVendor.id),
     }));
-    setBucketIndex(vendors.length - 1);
+    setBucketIndex(vendorOrder.length - 1);
     setSorted(emptyBuckets());
+    setComparisonBuckets(emptyBuckets());
     setMachine(null);
     setComparisons(0);
     setComparisonHistory([]);
@@ -580,7 +630,7 @@ export function RankingApp() {
         <section className="landing__hero">
           <div className="landing__copy">
             <h1>Rank your<br /><em>campus dining spots.</em></h1>
-            <button className="button button--primary button--large" onClick={() => setPhase("bucket")}>Start ranking <span>→</span></button>
+            <button className="button button--primary button--large" onClick={startRanking}>Start ranking <span>→</span></button>
           </div>
           <div className="card-stack" aria-hidden="true">
             {[vendors[0], vendors[4], vendors[1]].map((vendor, index) => (
@@ -597,11 +647,11 @@ export function RankingApp() {
   }
 
   if (phase === "bucket") {
-    const vendor = vendors[bucketIndex];
+    const vendor = vendorOrder[bucketIndex];
     return (
       <main className="site-shell flow-shell">
         <AppHeader step="Phase One: Your Preferences" />
-        <div className="progress-row"><span>{bucketIndex + 1} of {vendors.length}</span><div className="progress-track"><i style={{ width: `${((bucketIndex + 1) / vendors.length) * 100}%` }} /></div></div>
+        <div className="progress-row"><span>{bucketIndex + 1} of {vendorOrder.length}</span><div className="progress-track"><i style={{ width: `${((bucketIndex + 1) / vendorOrder.length) * 100}%` }} /></div></div>
         <section className="flow-content bucket-screen">
           <div className="prompt-block"><h2><span className="prompt-nowrap">How do you feel about</span><br /><em>{vendor.name}?</em></h2></div>
           <article className="focus-card">
