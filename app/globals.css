@@ -142,13 +142,22 @@ h1 em, h2 em { color: var(--purple); font-weight: 650; font-style: normal; }
 
 .flow-shell { min-height: 100svh; }
 @media (min-width: 761px) {
+  .app-header { width: calc(100% - 56px); }
   .flow-shell { display: grid; grid-template-rows: 64px minmax(0, 1fr); }
   .flow-shell .app-header { grid-area: 1 / 1; height: 64px; }
   .flow-shell .progress-row {
     grid-area: 1 / 1;
     align-self: center;
-    width: min(680px, calc(100% - 340px));
-    margin: 0 0 0 max(20px, calc((100% - 1180px) / 2));
+    position: relative;
+    width: min(680px, calc(100% - 560px));
+    height: 16px;
+    margin: 0 auto;
+  }
+  .flow-shell .progress-row > span {
+    position: absolute;
+    right: calc(100% + 15px);
+    white-space: nowrap;
+    text-align: right;
   }
   .flow-shell .flow-content { grid-area: 2 / 1; align-self: start; }
 }
